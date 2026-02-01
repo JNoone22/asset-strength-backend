@@ -337,7 +337,7 @@ def get_multiple_assets():
         for symbol in symbols:
             try:
                 results[symbol] = get_asset_data(symbol, ma_period)
-                time.sleep(1.2)
+                time.sleep(2.5)
             except Exception as e:
                 errors[symbol] = str(e)
         
@@ -369,7 +369,7 @@ def get_strength_matrix():
         for symbol in symbols:
             try:
                 asset_data[symbol] = get_asset_data(symbol, ma_period)
-                time.sleep(1.2)
+                time.sleep(2.5)
             except Exception as e:
                 print(f"Error fetching {symbol}: {e}")
         
