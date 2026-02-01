@@ -183,7 +183,8 @@ def fetch_alpha_vantage_data(symbol, ma_period=20):
         
         if 'Note' in data:
             raise ValueError("Alpha Vantage API rate limit exceeded")
-        
+            
+        print(f"Alpha Vantage response keys: {data.keys()}")
         if 'Weekly Adjusted Time Series' not in data:
             raise ValueError(f"No data available for {symbol}")
         
