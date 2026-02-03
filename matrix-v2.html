@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Strength Matrix v2.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131820;
+            --bg-card: #1a1f2e;
+            --border-color: #2a3342;
+            --text-primary: #e4e8f0;
+            --text-secondary: #8b93a7;
+            --text-muted: #5a6375;
+            --accent-bullish: #00ff88;
+            --accent-bearish: #ff3366;
+            --accent-blue: #00d4ff;
+            --accent-gold: #ffaa00;
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Archivo', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .background-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--border-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .status-banner {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .status-banner.error {
+            background: rgba(255, 51, 102, 0.1);
+            border-color: var(--accent-bearish);
+            color: var(--accent-bearish);
+        }
+
+        .status-banner.success {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--accent-bullish);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .status-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, button {
+            font-family: 'IBM Plex Mono', monospace;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 500;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #0099cc 100%);
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+        }
+
+        .matrix-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .matrix-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .matrix-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .matrix-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .icon-button {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .icon-button:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            padding: 0.4rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            min-width: 50px;
+        }
+
+        .matrix-table th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            font-size: 0.65rem;
+        }
+
+        .matrix-table td:hover {
+            background: var(--bg-secondary);
+            cursor: pointer;
+        }
+
+        .strength-badge {
+            padding: 0.2rem 0.4rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.65rem;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .strength-badge.strong {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-bullish);
+            border: 1px solid var(--accent-bullish);
+        }
+
+        .strength-badge.weak {
+            background: rgba(255, 51, 102, 0.2);
+            color: var(--accent-bearish);
+            border: 1px solid var(--accent-bearish);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 1.5rem;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: var(--bg-card);
+            margin: 3% auto;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: var(--shadow-lg);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .close {
+            color: var(--text-secondary);
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .close:hover {
+            color: var(--text-primary);
+        }
+
+        .asset-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .asset-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-family: 'IBM Plex Mono', monospace;
+            cursor: move;
+            transition: all 0.2s ease;
+        }
+
+        .asset-item:hover {
+            border-color: var(--accent-blue);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .asset-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .drag-handle {
+            color: var(--text-muted);
+            cursor: grab;
+            font-size: 1.2rem;
+            user-select: none;
+        }
+
+        .asset-symbol {
+            flex: 1;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .asset-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .asset-badge.stock {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-bullish);
+        }
+
+        .asset-badge.crypto {
+            background: rgba(255, 51, 102, 0.2);
+            color: var(--accent-bearish);
+        }
+
+        .asset-badge.forex {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .remove-btn {
+            cursor: pointer;
+            color: var(--accent-bearish);
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 0 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .remove-btn:hover {
+            color: #ff5588;
+        }
+
+        .add-asset-form {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .add-asset-form input {
+            flex: 1;
+        }
+
+        .help-text {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .help-text strong {
+            color: var(--accent-blue);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-grid"></div>
+    
+    <div class="container">
+        <header>
+            <h1>Asset Strength Matrix</h1>
+            <p class="subtitle">16×16 Edition • Daily Updates at 8am EST • Alpha Vantage + CoinGecko</p>
+        </header>
+
+        <div id="statusBanner" class="status-banner">
+            <div id="statusText">🔄 Connecting to backend...</div>
+            <div class="status-grid" id="statusGrid" style="display: none;">
+                <div class="status-item">
+                    <div class="status-label">Last Updated</div>
+                    <div class="status-value" id="lastUpdate">—</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Next Update</div>
+                    <div class="status-value" id="nextUpdate">—</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Data Freshness</div>
+                    <div class="status-value" id="dataAge">—</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Assets Loaded</div>
+                    <div class="status-value" id="assetsCount">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>MA Period (Weeks)</label>
+                <input type="number" id="maPeriod" value="20" min="5" max="200">
+            </div>
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <button onclick="editAssets()">✏️ Edit Assets</button>
+            </div>
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <button onclick="saveConfiguration()">💾 Save</button>
+            </div>
+        </div>
+
+        <div class="matrix-panel">
+            <div class="matrix-header">
+                <div class="matrix-title">
+                    <span class="matrix-dot"></span>
+                    Relative Strength Matrix
+                </div>
+            </div>
+            <div id="matrixContent">
+                <div class="loading"><div class="spinner"></div><p>Loading matrix...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Assets Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Assets (Drag to Reorder)</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <div class="asset-list" id="assetList"></div>
+            <div class="add-asset-form">
+                <input type="text" id="newAssetInput" placeholder="Add symbol (e.g., AAPL, BTC, EUR/USD)" maxlength="10">
+                <button onclick="addAsset()">Add Asset</button>
+            </div>
+            <div class="help-text">
+                <strong>💡 Symbol Examples:</strong>
+                Stocks: AAPL, MSFT, GOOGL, NVDA, TSLA<br>
+                Crypto: BTC, ETH, SOL, ADA, XRP<br>
+                ETFs: SPY, GLD, SLV<br>
+                <br>
+                <strong>📌 Tips:</strong>
+                • Drag assets to reorder them<br>
+                • Maximum 16 assets for optimal display<br>
+                • Changes save automatically
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000/api';
+        
+        // Default 16 assets
+        let assets = [
+            'SPY', 'AAPL', 'MSFT', 'GOOGL',
+            'NVDA', 'TSLA', 'META', 'AMZN',
+            'BTC', 'ETH', 'SOL', 'ADA',
+            'GLD', 'SLV', 'EUR/USD', 'GBP/USD'
+        ];
+        
+        let matrixData = {};
+        let maPeriod = 20;
+        let draggedElement = null;
+
+        // Load saved configuration
+        const savedAssets = localStorage.getItem('matrixAssets_v2');
+        if (savedAssets) {
+            try {
+                assets = JSON.parse(savedAssets);
+            } catch (e) {
+                console.error('Error loading saved assets:', e);
+            }
+        }
+
+        function showStatus(message, type = 'info') {
+            const banner = document.getElementById('statusBanner');
+            const text = document.getElementById('statusText');
+            const grid = document.getElementById('statusGrid');
+            
+            text.textContent = message;
+            banner.className = `status-banner ${type}`;
+            
+            if (type === 'success') {
+                grid.style.display = 'grid';
+                text.style.display = 'none';
+            } else {
+                grid.style.display = 'none';
+                text.style.display = 'block';
+            }
+        }
+
+        function getAssetType(symbol) {
+            symbol = symbol.toUpperCase();
+            if (symbol.includes('/') || symbol.includes('USD') || symbol.includes('EUR') || symbol.includes('GBP') || symbol.includes('JPY')) {
+                return 'forex';
+            }
+            const cryptos = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOT', 'DOGE', 'MATIC', 'LINK', 'UNI', 'AVAX', 'HYPE'];
+            if (cryptos.some(c => symbol.includes(c))) {
+                return 'crypto';
+            }
+            return 'stock';
+        }
+
+        async function fetchMatrixData() {
+            try {
+                showStatus('🔄 Loading data...', 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/matrix`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbols: assets,
+                        ma_period: maPeriod
+                    })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const result = await response.json();
+                matrixData = result;
+                
+                // Update status display
+                document.getElementById('lastUpdate').textContent = result.lastUpdate || '—';
+                document.getElementById('nextUpdate').textContent = result.nextUpdate || '—';
+                document.getElementById('assetsCount').textContent = `${Object.keys(result.assets || {}).length}/${assets.length}`;
+                
+                // Calculate data age
+                if (result.lastUpdate) {
+                    const lastUpdate = new Date(result.lastUpdate);
+                    const now = new Date();
+                    const hours = Math.floor((now - lastUpdate) / (1000 * 60 * 60));
+                    const minutes = Math.floor((now - lastUpdate) / (1000 * 60)) % 60;
+                    document.getElementById('dataAge').textContent = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                }
+                
+                renderMatrix();
+                showStatus('✅ Matrix loaded', 'success');
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                console.error('Fetch error:', error);
+            }
+        }
+
+        function calculateRelativeStrength(asset1, asset2) {
+            const data = matrixData.assets;
+            if (!data[asset1] || !data[asset2]) return null;
+            
+            const ratio = data[asset1].currentPrice / data[asset2].currentPrice;
+            const maRatio = data[asset1].ma / data[asset2].ma;
+            const isAboveMA = ratio > maRatio;
+            const strength = ((ratio - maRatio) / maRatio * 100).toFixed(2);
+            
+            return { isAboveMA, strength };
+        }
+
+        function renderMatrix() {
+            const container = document.getElementById('matrixContent');
+            const data = matrixData.assets || {};
+            
+            let html = '<div style="overflow-x: auto;"><table class="matrix-table"><thead><tr><th>vs</th>';
+            
+            assets.forEach(symbol => {
+                html += `<th>${symbol}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            assets.forEach(base => {
+                html += `<tr><th>${base}</th>`;
+                assets.forEach(quote => {
+                    if (base === quote) {
+                        html += '<td>—</td>';
+                    } else if (data[base] && data[quote]) {
+                        const strength = calculateRelativeStrength(base, quote);
+                        if (strength) {
+                            const cls = strength.isAboveMA ? 'strong' : 'weak';
+                            const arrow = strength.isAboveMA ? '↑' : '↓';
+                            html += `<td title="${base} vs ${quote}: ${strength.isAboveMA ? base + ' stronger' : quote + ' stronger'}"><span class="strength-badge ${cls}">${arrow} ${Math.abs(strength.strength)}%</span></td>`;
+                        } else {
+                            html += '<td>N/A</td>';
+                        }
+                    } else {
+                        html += '<td>...</td>';
+                    }
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function editAssets() {
+            const list = document.getElementById('assetList');
+            list.innerHTML = '';
+            
+            assets.forEach((symbol, index) => {
+                const item = document.createElement('div');
+                item.className = 'asset-item';
+                item.draggable = true;
+                item.dataset.index = index;
+                
+                const type = getAssetType(symbol);
+                
+                item.innerHTML = `
+                    <span class="drag-handle">⋮⋮</span>
+                    <span class="asset-symbol">${symbol}</span>
+                    <span class="asset-badge ${type}">${type}</span>
+                    <span class="remove-btn" onclick="removeAsset(${index})">&times;</span>
+                `;
+                
+                // Drag and drop handlers
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+                
+                list.appendChild(item);
+            });
+            
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('newAssetInput').value = '';
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            
+            const afterElement = getDragAfterElement(e.currentTarget.parentElement, e.clientY);
+            const dragging = document.querySelector('.dragging');
+            
+            if (afterElement == null) {
+                e.currentTarget.parentElement.appendChild(dragging);
+            } else {
+                e.currentTarget.parentElement.insertBefore(dragging, afterElement);
+            }
+            
+            return false;
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            // Rebuild assets array from new order
+            const items = document.querySelectorAll('.asset-item');
+            assets = Array.from(items).map(item => 
+                item.querySelector('.asset-symbol').textContent
+            );
+            
+            saveConfiguration();
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.asset-item:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function addAsset() {
+            const input = document.getElementById('newAssetInput');
+            const symbol = input.value.trim().toUpperCase();
+            
+            if (!symbol) return;
+            
+            if (assets.includes(symbol)) {
+                alert('Asset already in matrix');
+                return;
+            }
+            
+            if (assets.length >= 16) {
+                alert('Maximum 16 assets allowed');
+                return;
+            }
+            
+            assets.push(symbol);
+            editAssets();
+            saveConfiguration();
+        }
+
+        function removeAsset(index) {
+            if (assets.length <= 1) {
+                alert('Minimum 2 assets required for comparison');
+                return;
+            }
+            
+            assets.splice(index, 1);
+            editAssets();
+            saveConfiguration();
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function saveConfiguration() {
+            try {
+                localStorage.setItem('matrixAssets_v2', JSON.stringify(assets));
+                showStatus('✅ Configuration saved', 'success');
+                setTimeout(() => fetchMatrixData(), 1000);
+            } catch (error) {
+                showStatus('❌ Error saving configuration', 'error');
+            }
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+
+        // Enter key to add asset
+        document.getElementById('newAssetInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addAsset();
+            }
+        });
+
+        // MA period change
+        document.getElementById('maPeriod').addEventListener('change', function() {
+            maPeriod = parseInt(this.value);
+        });
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', async () => {
+            await fetchMatrixData();
+        });
+    </script>
+</body>
+</html>
