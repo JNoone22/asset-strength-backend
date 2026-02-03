@@ -14,7 +14,6 @@ import pytz
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": ["https://sage-biscotti-6e007c.netlify.app", "http://localhost:8000"]}})
-
 # Configuration
 TWELVE_DATA_API_KEY = os.getenv('TWELVE_DATA_API_KEY', 'YOUR_API_KEY_HERE')
 TWELVE_DATA_URL = 'https://api.twelvedata.com'
