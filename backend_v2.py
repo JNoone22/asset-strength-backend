@@ -361,7 +361,7 @@ def get_multiple_assets():
             try:
                 results[symbol] = get_asset_data(symbol, ma_period)
                 # Twelve Data free tier: 8 calls/minute
-                time.sleep(8.0)
+                time.sleep(3.0)
             except Exception as e:
                 errors[symbol] = str(e)
         
